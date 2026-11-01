@@ -1,0 +1,1 @@
+# Keep directory tracked by Git. Trained model artifacts (.joblib, scalers, encoders) are stored here.

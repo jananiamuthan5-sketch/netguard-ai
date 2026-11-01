@@ -1,0 +1,100 @@
+# NetGuard AI - Project .gitignore
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+!.env.example
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+
+# Build & Distribution Artifacts
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+backend/dist/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Machine Learning - Large Datasets & Model Binaries
+# Preserves directory structure via .gitkeep
+ml/data/raw/*
+!ml/data/raw/.gitkeep
+!ml/data/raw/README.md
+ml/data/processed/*
+!ml/data/processed/.gitkeep
+!ml/data/processed/README.md
+ml/models/*
+!ml/models/.gitkeep
+!ml/models/README.md
+*.joblib
+*.pkl
+*.h5
+*.pt
+*.pth
+*.onnx
+*.parquet
+*.pcap
+*.pcapng
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# IDE & Editor Specific Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log

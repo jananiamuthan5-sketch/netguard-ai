@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: #070b14;
+  color: #e2e8f0;
+  overflow-x: hidden;
+}
+
+/* Subtle glowing cyber effects */
+.cyber-glow {
+  box-shadow: 0 0 25px -5px rgba(0, 242, 254, 0.25);
+}
+
+.cyber-glow-shield {
+  box-shadow: 0 0 40px -10px rgba(79, 172, 254, 0.35);
+}
+
+.glass-panel {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}

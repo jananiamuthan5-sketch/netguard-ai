@@ -1,0 +1,3 @@
+# NetGuard AI - Robots file
+User-agent: *
+Disallow: /api/
