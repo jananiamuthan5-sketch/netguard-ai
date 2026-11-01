@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
+import AppLayout from './components/AppLayout';
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import AnalyzePage from './pages/AnalyzePage';
@@ -14,21 +13,17 @@ import { ROUTES } from './utils/constants';
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="flex flex-col min-h-screen bg-[#070b14] text-slate-100">
-        <Navbar />
-        <main className="flex-1 flex flex-col">
-          <Routes>
-            <Route path={ROUTES.HOME} element={<LandingPage />} />
-            <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
-            <Route path={ROUTES.ANALYZE} element={<AnalyzePage />} />
-            <Route path={ROUTES.RESULTS} element={<ResultsPage />} />
-            <Route path={ROUTES.ANALYTICS} element={<AnalyticsPage />} />
-            <Route path={ROUTES.MODEL_PERFORMANCE} element={<ModelPerformancePage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
+      <AppLayout>
+        <Routes>
+          <Route path={ROUTES.HOME} element={<LandingPage />} />
+          <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
+          <Route path={ROUTES.ANALYZE} element={<AnalyzePage />} />
+          <Route path={ROUTES.RESULTS} element={<ResultsPage />} />
+          <Route path={ROUTES.ANALYTICS} element={<AnalyticsPage />} />
+          <Route path={ROUTES.MODEL_PERFORMANCE} element={<ModelPerformancePage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </AppLayout>
     </BrowserRouter>
   );
 }
