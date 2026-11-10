@@ -16,7 +16,7 @@ export const APP_INFO = {
   subtitle: 'AI-Powered Network Intrusion Detection System',
   description:
     'An intelligent cybersecurity platform designed to analyze network traffic and identify potential intrusions using Machine Learning.',
-  version: 'v0.2.0 (Phase 2)',
+  version: 'v1.0.0',
 };
 
 export const TRAFFIC_CLASSES = {

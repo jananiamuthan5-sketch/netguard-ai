@@ -15,7 +15,7 @@ api_router = APIRouter()
 # Core Health Check Route: /api/v1/health
 api_router.include_router(health_router, tags=["Health"])
 
-# Future Phase 2 Placeholder Routes
+# Core Intrusion Detection, History, Telemetry & Model Metadata Routes
 api_router.include_router(analysis_router, prefix="/analysis", tags=["Analysis"])
 api_router.include_router(predictions_router, prefix="/predictions", tags=["Predictions"])
 api_router.include_router(analytics_router, prefix="/analytics", tags=["Analytics"])

@@ -3,23 +3,18 @@ import { Link } from 'react-router-dom';
 import {
   Shield,
   ArrowRight,
-  Database,
   Cpu,
   Layers,
   Activity,
-  CheckCircle2,
   Server,
   UploadCloud,
-  FileCheck,
-  Zap,
-  Lock,
 } from 'lucide-react';
 import { ROUTES, APP_INFO } from '../utils/constants';
 import useApiHealth from '../hooks/useApiHealth';
 import StatusBadge from '../components/StatusBadge';
 
 export default function LandingPage() {
-  const { isConnected, data, loading, refresh } = useApiHealth();
+  const { isConnected, loading } = useApiHealth();
 
   const workflowSteps = [
     {
@@ -56,10 +51,10 @@ export default function LandingPage() {
 
         <div className="relative z-10 flex flex-col items-center text-center space-y-8">
           
-          {/* Phase Status Pill */}
+          {/* Status Pill */}
           <div className="inline-flex items-center space-x-2 px-3.5 py-1 rounded-full text-xs font-mono bg-cyan-500/10 border border-cyan-500/30 text-cyan-300">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            <span>PHASE 2 : CYBERSECURITY DASHBOARD UI</span>
+            <span>ML INTRUSION DETECTION ENGINE &bull; NSL-KDD</span>
           </div>
 
           {/* Main Title & Tagline */}

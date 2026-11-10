@@ -56,17 +56,12 @@ wheels/
 .installed.cfg
 *.egg
 
-# Machine Learning - Large Datasets & Model Binaries
-# Preserves directory structure via .gitkeep
+# Machine Learning - Large Raw Datasets & Arbitrary Model Binaries
+# Preserves directory structure via .gitkeep and keeps production model artifacts tracked
 ml/data/raw/*
 !ml/data/raw/.gitkeep
-!ml/data/raw/README.md
 ml/data/processed/*
 !ml/data/processed/.gitkeep
-!ml/data/processed/README.md
-ml/models/*
-!ml/models/.gitkeep
-!ml/models/README.md
 *.joblib
 *.pkl
 *.h5
@@ -76,6 +71,10 @@ ml/models/*
 *.parquet
 *.pcap
 *.pcapng
+ml/models/*
+!ml/models/.gitkeep
+!ml/models/*.json
+!ml/models/netguard_model.joblib
 
 # Jupyter Notebook Checkpoints
 .ipynb_checkpoints/

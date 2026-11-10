@@ -5,8 +5,12 @@ Handles application settings, environment variables, and constants.
 
 import os
 from typing import List, Union
-from pydantic import AnyHttpUrl, field_validator
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+_BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+_BACKEND_ENV = os.path.join(_BACKEND_DIR, ".env")
 
 
 class Settings(BaseSettings):
@@ -14,7 +18,7 @@ class Settings(BaseSettings):
     Application runtime configuration loaded from environment variables or .env file.
     """
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", _BACKEND_ENV),
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore"
@@ -25,10 +29,10 @@ class Settings(BaseSettings):
     VERSION: str = "v1"
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    DEBUG: bool = False
 
-    # Database Configuration (SQLite default)
-    DATABASE_URL: str = "sqlite:///./netguard.db"
+    # Database Configuration (SQLite default pointing reliably to backend/netguard.db)
+    DATABASE_URL: str = f"sqlite:///{os.path.join(_BACKEND_DIR, 'netguard.db')}"
 
     # CORS Configuration
     BACKEND_CORS_ORIGINS: List[str] = [

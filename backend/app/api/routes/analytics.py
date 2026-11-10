@@ -1,27 +1,29 @@
 """
-NetGuard AI - Analytics Route (Placeholder)
-Reserved for Phase 2: Aggregate threat telemetry, intrusion trends, and flow metrics.
+NetGuard AI - Analytics Route
+Computes aggregate threat telemetry and network traffic metrics from real database history.
 """
 
-from typing import Dict
-from fastapi import APIRouter, status
+from typing import Any, Dict
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
+
+from app.database.session import get_db
+from app.schemas.prediction import AnalyticsResponse
+from app.services.prediction_service import PredictionService
 
 router = APIRouter()
 
 
 @router.get(
     "",
-    summary="Analytics Route Placeholder",
-    description="Endpoint placeholder for network traffic analytics and threat telemetry.",
+    summary="Get Threat Telemetry Analytics",
+    description="Returns aggregated traffic counts, threat rates, and trend data derived from real prediction sessions.",
+    response_model=AnalyticsResponse,
     status_code=status.HTTP_200_OK,
 )
-def get_analytics_info() -> Dict[str, str]:
+def get_analytics(db: Session = Depends(get_db)) -> Dict[str, Any]:
     """
-    Placeholder endpoint for cybersecurity telemetry and aggregation.
-    In Phase 2, this will calculate intrusion breakdown ratios from real analysis history.
+    Computes aggregated intrusion detection statistics from SQLite database records.
     """
-    return {
-        "message": "Analytics route placeholder for NetGuard AI.",
-        "phase": "Phase 1 Foundation",
-        "description": "Aggregated intrusion metrics and flow telemetry will be computed in Phase 2."
-    }
+    service = PredictionService(db)
+    return service.get_analytics_summary()

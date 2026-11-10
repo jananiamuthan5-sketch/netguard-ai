@@ -1,61 +1,63 @@
 # NetGuard AI - System Architecture Blueprint
 
 ## 1. Overview
-**NetGuard AI** is a professional full-stack Machine Learning-powered Network Intrusion Detection System (NIDS). The platform is architected to inspect network packet and flow telemetry, providing rapid classification into:
-- **Normal / Benign Traffic (Class 0)**
-- **Potential Intrusion / Malicious Traffic (Class 1)**
+**NetGuard AI** is a full-stack Machine Learning-powered Network Intrusion Detection System (NIDS) built for CSV network flow inspection. The platform classifies uploaded packet flow telemetry into two binary classes:
+- **Class 0 — `NORMAL`**: Benign network traffic
+- **Class 1 — `POTENTIAL INTRUSION`**: Malicious / anomalous traffic patterns
 
 ---
 
 ## 2. Component Architecture
 
-```
+```text
                     ┌────────────────────────────┐
                     │      Client Browser        │
-                    │   React 18 + Tailwind CSS  │
+                    │  React 18 + Tailwind CSS   │
                     └─────────────┬──────────────┘
-                                  │  HTTP / JSON
+                                  │  HTTP / JSON & Multipart CSV
                                   ▼
                     ┌────────────────────────────┐
                     │    FastAPI Gateway v1      │
                     │  (/api/v1/health, etc.)    │
                     └───────┬─────────────┬──────┘
                             │             │
-              ORM / SQL     ▼             ▼   Model Inference
+              ORM / SQL     ▼             ▼   ML Inference
          ┌─────────────────────┐   ┌──────────────────────┐
-         │   SQLite Database   │   │ Machine Learning     │
-         │ (Predictions Table) │   │ Pipeline (Scikit)    │
+         │   SQLite Database   │   │  Scikit-learn Engine │
+         │ (predictions table) │   │ (netguard_model.joblib)
          └─────────────────────┘   └──────────────────────┘
 ```
 
 ### 2.1 Frontend Subsystem (`/frontend`)
-- **Framework**: React 18 with Vite build tooling.
-- **Styling**: Tailwind CSS configured with custom dark cybersecurity color schemes, glassmorphic panels, and glowing status accents.
-- **Routing**: React Router v6 with pre-registered routes:
-  - `/` - Foundation Landing Page with real-time API health monitor
-  - `/dashboard` - Operations Security Dashboard (Phase 2)
-  - `/analyze` - Traffic Log Upload & Flow Inspector (Phase 2)
-  - `/results` - Prediction History & Audit Records (Phase 2)
-  - `/analytics` - Threat Metrics & Telemetry (Phase 2)
-  - `/model-performance` - ML Evaluation Metrics & ROC-AUC Curves (Phase 2)
-- **Data Visualization**: Recharts library ready for metric visualization in Phase 2.
+- **Framework**: React 18 bundled with Vite 5.
+- **Styling**: Tailwind CSS configured with custom dark cybersecurity panels and status semantics.
+- **Routing**: React Router v6 with implemented routes:
+  - `/` — Landing overview with live API health check and pipeline summary
+  - `/dashboard` — Operations security overview with summary cards and traffic pie chart
+  - `/analyze` — CSV network flow drag-and-drop upload, sample CSV loader, and per-flow result table
+  - `/results` — Persisted prediction session history queried from SQLite
+  - `/analytics` — Security telemetry trends (pie, bar, and area charts via Recharts)
+  - `/model-performance` — Verified NSL-KDD test evaluation metrics, confusion matrix, and classifier comparison
+- **Configuration**: Uses `VITE_API_BASE_URL` (default `http://localhost:8000/api/v1`).
 
 ### 2.2 Backend Subsystem (`/backend`)
-- **Web Framework**: FastAPI with asynchronous ASGI execution on Uvicorn.
-- **API Versioning**: Standardized under base path `/api/v1`.
-- **Cross-Origin Resource Sharing (CORS)**: Configured via Pydantic settings allowing standard Vite dev server ports (`localhost:5173`, `127.0.0.1:5173`).
-- **Database Layer**: SQLAlchemy ORM with SQLite database engine (`netguard.db`), automatically created during application startup lifespan.
-- **Service Layer**: Decoupled service architecture (`PredictionService`) separating route handlers from ORM database transactions.
+- **Web Framework**: FastAPI running on Uvicorn ASGI.
+- **API Versioning**: REST endpoints served under `/api/v1`; OpenAPI Swagger UI mounted at `/docs` (with `/api/v1/docs` redirect).
+- **CORS**: Configured via Pydantic Settings (`BACKEND_CORS_ORIGINS`), allowing Vite local origins.
+- **Database Layer**: SQLAlchemy ORM with SQLite (`backend/netguard.db`), initialized automatically on application startup lifespan.
+- **Service Layer**: `PredictionService` orchestrates CSV schema validation, ML pipeline inference via `NetGuardPredictor`, SQLite persistence, and telemetry aggregation.
 
 ### 2.3 Machine Learning Subsystem (`/ml`)
 - **Data Lifecycle**:
-  `Raw Dataset → Data Validation → Data Cleaning → Feature Processing → Train/Test Split → Model Training → Model Evaluation → Save Best Model → Prediction Engine`
-- **Core Libraries**: Scikit-Learn, Pandas, NumPy, and Joblib serialization.
+  `NSL-KDD Raw Dataset → Data Cleaning → ColumnTransformer Preprocessing → Classifier Training & Evaluation → Joblib Model Serialization → FastAPI Inference`
+- **Core Libraries**: Scikit-Learn, Pandas, NumPy, SciPy, Joblib.
 - **Modular Scripts**:
-  - `preprocess.py`: Schema validation, categorical protocol encoding, numerical normalization.
-  - `train_model.py`: Stratified dataset splitting and classifier fitting.
-  - `evaluate_model.py`: Cybersecurity classification metrics (Precision, Recall, F1, ROC-AUC).
-  - `predict.py`: Standalone single-record and batch inference engine.
+  - `download_dataset.py`: Downloads official `KDDTrain+_20Percent.txt` and `KDDTest+.txt`.
+  - `preprocess.py`: Header sanitization, numeric/infinite cleaning, 41-feature alignment, `ColumnTransformer` construction.
+  - `train_model.py`: Compares Logistic Regression, Decision Tree, and Random Forest; selects and serializes the best model pipeline and metadata.
+  - `evaluate_model.py`: Computes Accuracy, Precision, Recall, F1-Score, ROC-AUC, and Confusion Matrix.
+  - `predict.py`: Loads `netguard_model.joblib` via `NetGuardPredictor` for batch DataFrame and single-flow inference.
+  - `validate_ml_model.py`: Verifies serialized artifact integrity and sample inference output.
 
 ---
 
@@ -64,25 +66,8 @@
 | Column | Type | Constraints | Description |
 |---|---|---|---|
 | `id` | Integer | Primary Key, Auto-increment | Unique identifier for the analysis session |
-| `file_name` | String(255) | Not Null, Indexed | Name of uploaded traffic log file |
+| `file_name` | String(255) | Not Null, Indexed | Name of uploaded CSV capture file |
 | `total_records` | Integer | Not Null, Default 0 | Total network flow entries evaluated |
 | `normal_count` | Integer | Not Null, Default 0 | Count of benign traffic records |
-| `intrusion_count` | Integer | Not Null, Default 0 | Count of malicious threat records |
-| `created_at` | DateTime(UTC)| Not Null, Server Default | Timestamp of analysis session |
-
----
-
-## 4. Phase-by-Phase Roadmap
-
-### Phase 1: Architectural Foundation (Current)
-- Monorepo structure establishment.
-- FastAPI backend initialization with `/api/v1/health` and route placeholders.
-- SQLAlchemy ORM engine and `Prediction` model creation.
-- React frontend with Tailwind CSS and complete routing table.
-- ML modular foundation and pipeline definitions.
-
-### Phase 2: Core ML & Interactive Dashboard (Next)
-- Training baseline model on benchmark datasets (e.g. NSL-KDD / CIC-IDS2017).
-- Model artifact serialization (`netguard_model.joblib`).
-- File upload handling (`/api/v1/analysis`) for CSV network logs.
-- Interactive Dashboard UI with live stats and Recharts visualization.
+| `intrusion_count` | Integer | Not Null, Default 0 | Count of intrusion records |
+| `created_at` | DateTime(UTC) | Not Null | Timestamp of analysis session |

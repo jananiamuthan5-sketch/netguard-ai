@@ -1,36 +1,34 @@
 """
 NetGuard AI - Model Evaluation Module
-Part of the Machine Learning Foundation for Network Intrusion Detection System (NIDS)
 
-Pipeline Position:
-Model Training → [Model Evaluation] → Save Best Model
-
-Description:
-This module evaluates trained network intrusion classifiers using critical cybersecurity metrics:
-- Precision: Measures accuracy of positive intrusion alerts (reduces false alarm fatigue)
-- Recall (Detection Rate): Measures percentage of actual attacks successfully detected
-- F1-Score: Harmonic mean balancing Precision and Recall
-- ROC-AUC: Evaluates discrimination capability across decision thresholds
-- Confusion Matrix: Details True Positives, False Positives, True Negatives, False Negatives
-
-NOTE: This is Phase 1 Foundation. No fake accuracy metrics are generated or hardcoded.
-Real evaluation reports will be produced during Phase 2 model validation.
+Calculates critical cybersecurity metrics from real test predictions:
+- Accuracy
+- Precision
+- Recall (Detection Rate)
+- F1-Score
+- ROC-AUC
+- Confusion Matrix (TN, FP, FN, TP)
 """
 
 from typing import Any, Dict, Optional
 import numpy as np
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 
 
 class ModelEvaluator:
     """
-    Evaluator class for assessing binary network intrusion classification models.
+    Evaluates binary network intrusion classification models on test datasets.
     """
 
     def __init__(self, target_names: Optional[list] = None):
-        """
-        Initialize evaluator.
-        Default targets: ['Normal', 'Intrusion']
-        """
         self.target_names = target_names or ["Normal", "Intrusion"]
 
     def compute_metrics(
@@ -40,48 +38,66 @@ class ModelEvaluator:
         y_prob: Optional[np.ndarray] = None,
     ) -> Dict[str, Any]:
         """
-        Step 6: Model Evaluation
-        Calculates comprehensive classification performance metrics.
-
-        Args:
-            y_true: True ground truth labels (0 = Normal, 1 = Intrusion)
-            y_pred: Predicted class labels
-            y_prob: Predicted probability scores for the positive intrusion class
-
-        Returns:
-            Dictionary containing accuracy, precision, recall, f1, and confusion matrix.
+        Calculates all required cybersecurity classification performance metrics.
         """
-        # Placeholder for Phase 2 implementation with scikit-learn metrics:
-        # from sklearn.metrics import (
-        #     accuracy_score, precision_score, recall_score, f1_score,
-        #     roc_auc_score, confusion_matrix, classification_report
-        # )
-        raise NotImplementedError(
-            "Phase 1 Foundation: Evaluation pipeline structure defined. "
-            "Execute with validated model and test set in Phase 2."
+        acc = float(accuracy_score(y_true, y_pred))
+        prec = float(precision_score(y_true, y_pred, zero_division=0))
+        rec = float(recall_score(y_true, y_pred, zero_division=0))
+        f1 = float(f1_score(y_true, y_pred, zero_division=0))
+
+        roc_auc = None
+        if y_prob is not None:
+            try:
+                # If 2D probability array is passed, extract positive column
+                if len(y_prob.shape) > 1 and y_prob.shape[1] > 1:
+                    roc_auc = float(roc_auc_score(y_true, y_prob[:, 1]))
+                else:
+                    roc_auc = float(roc_auc_score(y_true, y_prob))
+            except Exception:
+                roc_auc = None
+
+        # Compute confusion matrix [[TN, FP], [FN, TP]]
+        cm = confusion_matrix(y_true, y_pred)
+        tn, fp, fn, tp = int(cm[0][0]), int(cm[0][1]), int(cm[1][0]), int(cm[1][1])
+
+        report_dict = classification_report(
+            y_true, y_pred, target_names=self.target_names, output_dict=True, zero_division=0
         )
 
-    def print_evaluation_summary(self, metrics: Dict[str, Any]) -> None:
+        metrics = {
+            "accuracy": round(acc, 4),
+            "precision": round(prec, 4),
+            "recall": round(rec, 4),
+            "f1_score": round(f1, 4),
+            "roc_auc": round(roc_auc, 4) if roc_auc is not None else None,
+            "confusion_matrix": {
+                "tn": tn,
+                "fp": fp,
+                "fn": fn,
+                "tp": tp,
+            },
+            "detailed_report": report_dict,
+        }
+
+        return metrics
+
+    def print_evaluation_summary(self, model_name: str, metrics: Dict[str, Any]) -> None:
         """
-        Outputs formatted evaluation report to console.
+        Prints a structured cybersecurity evaluation report.
         """
-        print("-" * 50)
-        print("NetGuard AI - Evaluation Summary")
-        print("-" * 50)
-        for key, value in metrics.items():
-            print(f"{key.capitalize()}: {value}")
-        print("-" * 50)
-
-
-def main():
-    """
-    CLI entrypoint for running evaluation against saved model and test split.
-    """
-    print("=" * 60)
-    print("NetGuard AI - Model Evaluation Foundation")
-    print("Status: Metrics pipeline defined. Ready for Phase 2 validation.")
-    print("=" * 60)
-
-
-if __name__ == "__main__":
-    main()
+        cm = metrics["confusion_matrix"]
+        print("\n" + "=" * 65)
+        print(f"NETGUARD AI - REAL MODEL EVALUATION REPORT: {model_name}")
+        print("=" * 65)
+        print(f"  Accuracy                : {metrics['accuracy'] * 100:.2f}%")
+        print(f"  Precision (Alert Purity): {metrics['precision'] * 100:.2f}%")
+        print(f"  Recall (Detection Rate) : {metrics['recall'] * 100:.2f}%")
+        print(f"  F1 Score (Harmonic Mean): {metrics['f1_score'] * 100:.2f}%")
+        if metrics.get("roc_auc") is not None:
+            print(f"  ROC-AUC Score           : {metrics['roc_auc']:.4f}")
+        print("\n--- Confusion Matrix ---")
+        print(f"  True Negatives  (Benign Traffic Verified) : {cm['tn']:,}")
+        print(f"  False Positives (False Alarms)            : {cm['fp']:,}")
+        print(f"  False Negatives (Missed Threat Intrusions): {cm['fn']:,}")
+        print(f"  True Positives  (Intrusions Intercepted)  : {cm['tp']:,}")
+        print("=" * 65)

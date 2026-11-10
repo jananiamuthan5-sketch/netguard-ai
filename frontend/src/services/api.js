@@ -4,9 +4,7 @@
  */
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  import.meta.env.VITE_API_URL ||
-  'http://localhost:8000/api/v1';
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 /**
  * Reusable HTTP fetch client with timeout and uniform error formatting.
@@ -14,15 +12,22 @@ export const API_BASE_URL =
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 6000);
+  const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout for ML inference
 
   try {
+    const isFormData = options.body instanceof FormData;
+    const defaultHeaders = {
+      Accept: 'application/json',
+    };
+    if (!isFormData) {
+      defaultHeaders['Content-Type'] = 'application/json';
+    }
+
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        ...defaultHeaders,
         ...(options.headers || {}),
       },
     });
@@ -30,9 +35,11 @@ async function request(endpoint, options = {}) {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorBody = await response.text().catch(() => '');
+      const errorJson = await response.json().catch(() => null);
+      const errorDetail = errorJson?.detail || errorJson?.message;
+      const errorBody = errorDetail || (await response.text().catch(() => ''));
       throw new Error(
-        `HTTP ${response.status} (${response.statusText}): ${errorBody || 'Server error'}`
+        errorDetail || `HTTP ${response.status} (${response.statusText}): ${errorBody || 'Server error'}`
       );
     }
 
@@ -49,14 +56,17 @@ async function request(endpoint, options = {}) {
       success: false,
       data: null,
       error: isAbort ? 'Connection timed out' : err.message || 'Network unreachable',
-      isOffline: isAbort || err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError'),
+      isOffline:
+        isAbort ||
+        err.message?.includes('Failed to fetch') ||
+        err.message?.includes('NetworkError') ||
+        err.message?.includes('Load failed'),
     };
   }
 }
 
 /**
- * Real health check request to GET /api/v1/health.
- * Expected response: { status: "healthy", service: "NetGuard AI API" }
+ * Health check request to GET /api/v1/health.
  */
 export async function checkBackendHealth() {
   const result = await request('/health', { method: 'GET' });
@@ -77,10 +87,24 @@ export async function checkBackendHealth() {
 }
 
 /**
+ * Uploads a network traffic CSV file for real machine learning analysis.
+ * POST /api/v1/analysis
+ */
+export async function uploadTrafficCsv(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return request('/analysis', {
+    method: 'POST',
+    body: formData,
+  });
+}
+
+/**
  * Retrieves prediction history from GET /api/v1/predictions.
  */
-export async function fetchPredictions() {
-  return request('/predictions', { method: 'GET' });
+export async function fetchPredictions(skip = 0, limit = 100) {
+  return request(`/predictions?skip=${skip}&limit=${limit}`, { method: 'GET' });
 }
 
 /**
@@ -91,7 +115,7 @@ export async function fetchAnalytics() {
 }
 
 /**
- * Retrieves ML model metadata from GET /api/v1/model.
+ * Retrieves ML model metadata and evaluation metrics from GET /api/v1/model.
  */
 export async function fetchModelInfo() {
   return request('/model', { method: 'GET' });
@@ -100,6 +124,7 @@ export async function fetchModelInfo() {
 export default {
   API_BASE_URL,
   checkBackendHealth,
+  uploadTrafficCsv,
   fetchPredictions,
   fetchAnalytics,
   fetchModelInfo,

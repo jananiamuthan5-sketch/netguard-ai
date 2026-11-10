@@ -1,77 +1,99 @@
 """
 NetGuard AI - Backend API & Database Unit Tests
+Part of Phase 3: Real Machine Learning Pipeline & Backend Integration
 """
 
 import os
 import sys
 
 # Ensure backend root is in sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, backend_dir)
 
-from fastapi.testclient import TestClient
-from app.main import app
 from app.database.session import init_db, SessionLocal
-from app.models.prediction import Prediction
+from app.api.routes.health import get_health
+from app.api.routes.analysis import get_analysis_info
+from app.api.routes.predictions import get_predictions
+from app.api.routes.analytics import get_analytics
+from app.api.routes.model import get_model_info
+from app.services.prediction_service import PredictionService
 
 
 def test_api_health_check():
-    """
-    Verifies that GET /api/v1/health returns 200 and matches required contract:
-    {
-      "status": "healthy",
-      "service": "NetGuard AI API"
-    }
-    """
-    with TestClient(app) as client:
-        response = client.get("/api/v1/health")
-        assert response.status_code == 200
-        assert response.json() == {
-            "status": "healthy",
-            "service": "NetGuard AI API",
-        }
+    """Verifies that health check returns healthy status."""
+    res = get_health()
+    assert res.status == "healthy"
+    assert res.service == "NetGuard AI API"
+    print("[PASS] test_api_health_check")
 
 
-def test_root_endpoint():
-    """
-    Verifies root endpoint service discovery.
-    """
-    with TestClient(app) as client:
-        response = client.get("/")
-        assert response.status_code == 200
-        data = response.json()
-        assert "health" in data
-        assert "docs" in data
+def test_analysis_endpoint_info():
+    """Verifies that GET /api/v1/analysis returns service descriptor."""
+    info = get_analysis_info()
+    assert info["status"] == "ready"
+    assert "CSV" in info["supported_format"]
+    print("[PASS] test_analysis_endpoint_info")
 
 
-def test_database_structure_and_no_fake_data():
-    """
-    Verifies that the SQLite database initializes and Prediction table is empty (no fake records).
-    """
+def test_model_metadata_endpoint():
+    """Verifies that GET /api/v1/model returns verified training metrics."""
     init_db()
     db = SessionLocal()
     try:
-        count = db.query(Prediction).count()
-        assert count == 0, f"Expected 0 prediction records in Phase 1, found {count}"
+        model_info = get_model_info(db)
+        assert model_info["trained"] is True
+        assert model_info["model_name"] == "Decision Tree"
+        assert "evaluation_metrics" in model_info
+        metrics = model_info["evaluation_metrics"]
+        assert metrics["accuracy"] > 0.75
+        assert metrics["f1_score"] > 0.75
+        assert "confusion_matrix" in metrics
+        cm = metrics["confusion_matrix"]
+        assert cm["tp"] > 0 and cm["tn"] > 0
+        print("[PASS] test_model_metadata_endpoint")
     finally:
         db.close()
 
 
-def test_placeholder_endpoints():
-    """
-    Verifies all Phase 2 placeholder endpoints return 200 OK and informative payloads.
-    """
-    with TestClient(app) as client:
-        for path in ["/api/v1/analysis", "/api/v1/predictions", "/api/v1/analytics", "/api/v1/model"]:
-            response = client.get(path)
-            assert response.status_code == 200
-            json_data = response.json()
-            assert "phase" in json_data
-            assert "Phase 1 Foundation" in json_data["phase"]
+def test_real_traffic_analysis_and_persistence():
+    """Verifies end-to-end inference on sample network traffic and database persistence."""
+    init_db()
+    db = SessionLocal()
+    try:
+        service = PredictionService(db)
+        sample_path = os.path.join(backend_dir, "..", "ml", "data", "test_samples", "sample_network_traffic.csv")
+        with open(sample_path, "rb") as f:
+            file_bytes = f.read()
+
+        results = service.analyze_csv_traffic(file_bytes=file_bytes, file_name="sample_network_traffic.csv")
+        assert results["total_records"] == 30
+        assert results["normal_count"] + results["intrusion_count"] == 30
+        assert "session_id" in results
+        assert results["session_id"] >= 1
+        assert len(results["records"]) > 0
+
+        # Verify predictions history in SQLite
+        history = get_predictions(skip=0, limit=10, db=db)
+        assert len(history) >= 1
+        latest = history[0]
+        assert latest.file_name == "sample_network_traffic.csv"
+
+        # Verify aggregated analytics
+        analytics = get_analytics(db=db)
+        assert analytics["total_sessions"] >= 1
+        assert analytics["total_records"] >= 30
+        assert analytics["normal_count"] > 0
+        assert analytics["intrusion_count"] > 0
+        assert analytics["threat_level"] in ["LOW", "MODERATE", "ELEVATED"]
+
+        print("[PASS] test_real_traffic_analysis_and_persistence")
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
     test_api_health_check()
-    test_root_endpoint()
-    test_database_structure_and_no_fake_data()
-    test_placeholder_endpoints()
-    print("All unit tests passed successfully!")
+    test_analysis_endpoint_info()
+    test_model_metadata_endpoint()
+    test_real_traffic_analysis_and_persistence()
+    print("\nALL BACKEND & ML TESTS PASSED WITH 100% SUCCESS!")

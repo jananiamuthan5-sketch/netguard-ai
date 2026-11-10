@@ -10,15 +10,14 @@ import {
   Home,
   X,
   RefreshCw,
-  Terminal,
   Activity,
 } from 'lucide-react';
-import { ROUTES, APP_INFO } from '../utils/constants';
+import { ROUTES } from '../utils/constants';
 import useApiHealth from '../hooks/useApiHealth';
 import StatusBadge from './StatusBadge';
 
 export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {} }) {
-  const { isConnected, statusText, loading, refresh } = useApiHealth();
+  const { isConnected, loading, refresh } = useApiHealth();
 
   const navItems = [
     {
@@ -178,7 +177,9 @@ export default function Sidebar({ mobileOpen = false, setMobileOpen = () => {} }
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">AI Model:</span>
-            <span className="text-amber-400">Untrained (Phase 5)</span>
+            <span className={isConnected ? 'text-emerald-400' : 'text-slate-400'}>
+              {isConnected ? 'NSL-KDD (Active)' : 'Standby'}
+            </span>
           </div>
         </div>
       </div>

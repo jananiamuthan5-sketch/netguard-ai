@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Menu, ShieldAlert, RefreshCw, Server, Activity } from 'lucide-react';
+import { Menu, RefreshCw, Server } from 'lucide-react';
 import { ROUTES } from '../utils/constants';
 import useApiHealth from '../hooks/useApiHealth';
 import StatusBadge from './StatusBadge';
 
 export default function Header({ onMenuToggle = () => {} }) {
   const location = useLocation();
-  const { isConnected, statusText, loading, refresh } = useApiHealth();
+  const { isConnected, loading, refresh } = useApiHealth();
 
   // Page title and description lookup based on current pathname
   const pageMetadata = {
@@ -33,7 +33,7 @@ export default function Header({ onMenuToggle = () => {} }) {
     },
     [ROUTES.HOME]: {
       title: 'System Overview',
-      description: 'AI-Powered Network Intrusion Detection System foundation.',
+      description: 'AI-Powered Network Intrusion Detection System.',
     },
   };
 
@@ -41,6 +41,10 @@ export default function Header({ onMenuToggle = () => {} }) {
     title: 'NetGuard AI',
     description: 'AI-Powered Network Intrusion Detection System',
   };
+
+  useEffect(() => {
+    document.title = `${currentMeta.title} | NetGuard AI`;
+  }, [currentMeta.title]);
 
   return (
     <header className="sticky top-0 z-20 h-16 border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between">
@@ -59,8 +63,8 @@ export default function Header({ onMenuToggle = () => {} }) {
             <h2 className="text-sm sm:text-base font-bold text-slate-100 font-sans tracking-tight">
               {currentMeta.title}
             </h2>
-            <span className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono uppercase bg-slate-800/80 text-cyan-400 border border-slate-700/80 rounded">
-              Phase 2 UI
+            <span className="hidden sm:inline-block px-1.5 py-0.5 text-[9px] font-mono uppercase bg-cyan-950/40 text-cyan-400 border border-cyan-500/30 rounded">
+              NIDS Active
             </span>
           </div>
           <p className="hidden md:block text-[11px] text-slate-400 truncate max-w-lg">
