@@ -3,8 +3,12 @@
  * Handles communication with the FastAPI backend using VITE_API_BASE_URL.
  */
 
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+function normalizeApiBaseUrl(rawUrl) {
+  const cleaned = (rawUrl || 'http://localhost:8000/api/v1').trim().replace(/\/+$/, '');
+  return cleaned.endsWith('/api/v1') ? cleaned : `${cleaned}/api/v1`;
+}
+
+export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
 /**
  * Reusable HTTP fetch client with timeout and uniform error formatting.
@@ -12,7 +16,7 @@ export const API_BASE_URL =
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s timeout for ML inference
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // Allow headroom for cloud cold-starts & ML inference
 
   try {
     const isFormData = options.body instanceof FormData;

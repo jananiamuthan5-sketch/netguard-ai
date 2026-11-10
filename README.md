@@ -274,6 +274,7 @@ npm --prefix frontend run build
 NetGuard AI/
 ├── .gitignore
 ├── README.md
+├── render.yaml                      # Render Web Service deployment blueprint
 ├── backend/
 │   ├── .env.example
 │   ├── requirements.txt
@@ -289,7 +290,7 @@ NetGuard AI/
 │   │   │       ├── model.py         # GET /api/v1/model
 │   │   │       └── predictions.py   # GET /api/v1/predictions & /{id}
 │   │   ├── core/
-│   │   │   └── config.py            # Pydantic settings & absolute SQLite path
+│   │   │   └── config.py            # Pydantic settings, CORS env support & SQLite URI
 │   │   ├── database/
 │   │   │   └── session.py           # SQLAlchemy engine, SessionLocal, init_db
 │   │   ├── models/
@@ -314,6 +315,7 @@ NetGuard AI/
 │   ├── package.json
 │   ├── postcss.config.js
 │   ├── tailwind.config.js
+│   ├── vercel.json                  # Vercel SPA deep-link rewrite rules
 │   ├── vite.config.js
 │   ├── public/
 │   │   ├── robots.txt
@@ -353,6 +355,55 @@ NetGuard AI/
         ├── predict.py               # NetGuardPredictor batch & single inference API
         └── validate_ml_model.py     # Artifact integrity verification
 ```
+
+---
+
+## Deployment
+
+NetGuard AI is configured for split cloud hosting with a **Vercel** frontend and a **Render** FastAPI + ML backend:
+
+```text
+React + Vite Frontend (Vercel)
+        ↓ HTTPS REST API
+FastAPI Backend + Scikit-learn Model (Render)
+        ↓
+SQLite Database (backend/netguard.db)
+```
+
+### Backend Deployment — Render
+
+- **Repository**: Connect your GitHub repository (`https://github.com/jananiamuthan5-sketch/netguard-ai`, branch `master`) or import via [`render.yaml`](render.yaml).
+- **Root Directory**: `.` *(keep repository root so the backend resolves `ml/models/netguard_model.joblib` cleanly)*.
+- **Build Command**:
+  ```bash
+  pip install -r backend/requirements.txt
+  ```
+- **Start Command**:
+  ```bash
+  uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+  ```
+- **Health Check Path**: `/api/v1/health`
+- **Environment Variables**:
+  - `ENVIRONMENT`: `production`
+  - `DEBUG`: `false`
+  - `ALLOWED_ORIGINS`: `https://<your-vercel-app>.vercel.app` *(set after deploying Vercel frontend; comma-separated origins supported)*
+- **ML Model Availability**: `ml/models/netguard_model.joblib` (22.47 KB) and `ml/models/model_metadata.json` are tracked in Git and loaded dynamically via project-relative paths (`PredictionService`).
+- **SQLite Persistence Note**: FastAPI's `lifespan` handler runs `init_db()` on boot, automatically creating `backend/netguard.db` and the `predictions` table if absent. However, on ephemeral free cloud filesystems (such as Render Free), SQLite data resets across container restarts or redeployments unless paired with a Render Persistent Disk or migrated to PostgreSQL.
+
+### Frontend Deployment — Vercel
+
+- **Repository**: Import the GitHub repository into Vercel (`branch: master`).
+- **Root Directory**: `frontend`
+- **Framework Preset**: `Vite`
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+- **Environment Variable**:
+  - `VITE_API_BASE_URL`: `https://<your-render-service>.onrender.com/api/v1`
+- **SPA Routing**: [`frontend/vercel.json`](frontend/vercel.json) rewrites React Router sub-routes (`/dashboard`, `/analyze`, `/results`, `/analytics`, `/model-performance`) to `/index.html`.
+- **Connecting Frontend to Backend**:
+  1. Deploy the Render backend first and note its public HTTPS base URL.
+  2. Set `VITE_API_BASE_URL` in Vercel Project Settings to `https://<your-render-service>.onrender.com/api/v1` and deploy the frontend.
+  3. Copy the resulting Vercel HTTPS origin (e.g., `https://<your-vercel-app>.vercel.app`) into Render's `ALLOWED_ORIGINS` environment variable and trigger a backend redeploy.
 
 ---
 

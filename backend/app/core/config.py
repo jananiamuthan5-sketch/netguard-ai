@@ -34,21 +34,42 @@ class Settings(BaseSettings):
     # Database Configuration (SQLite default pointing reliably to backend/netguard.db)
     DATABASE_URL: str = f"sqlite:///{os.path.join(_BACKEND_DIR, 'netguard.db')}"
 
-    # CORS Configuration
-    BACKEND_CORS_ORIGINS: List[str] = [
+    # CORS Configuration (supports local frontend + production origins via ALLOWED_ORIGINS or BACKEND_CORS_ORIGINS)
+    BACKEND_CORS_ORIGINS: Union[str, List[str]] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
     ]
+    ALLOWED_ORIGINS: Union[str, List[str]] = []
 
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @field_validator("BACKEND_CORS_ORIGINS", "ALLOWED_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",") if i.strip()]
-        elif isinstance(v, list):
-            return v
-        return ["http://localhost:5173", "http://127.0.0.1:5173"]
+        if isinstance(v, str):
+            raw = v.strip()
+            if not raw:
+                return []
+            if raw.startswith("[") and raw.endswith("]"):
+                import json
+                try:
+                    parsed = json.loads(raw)
+                    if isinstance(parsed, list):
+                        return [str(i).strip().rstrip("/") for i in parsed if str(i).strip()]
+                except json.JSONDecodeError:
+                    pass
+            return [i.strip().rstrip("/") for i in raw.split(",") if i.strip()]
+        if isinstance(v, list):
+            return [str(i).strip().rstrip("/") for i in v if str(i).strip()]
+        return []
+
+    def get_cors_origins(self) -> List[str]:
+        """Returns deduplicated list of allowed CORS origins without trailing slashes."""
+        combined: List[str] = []
+        for origin in list(self.BACKEND_CORS_ORIGINS) + list(self.ALLOWED_ORIGINS):
+            cleaned = str(origin).strip().rstrip("/")
+            if cleaned and cleaned not in combined:
+                combined.append(cleaned)
+        return combined
 
 
 settings = Settings()
